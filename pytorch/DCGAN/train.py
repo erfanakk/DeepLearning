@@ -13,6 +13,7 @@ import argparse
 
 my_parser = argparse.ArgumentParser()
 my_parser.add_argument('--epoch', action='store', type=int, required=True)
+my_parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 my_parser.add_argument('--save', action='store', type=bool)
 my_parser.add_argument('--retrain', action='store', type=bool)
 
@@ -29,7 +30,7 @@ NUM_EPOCHS = args.epoch #number of epochs #TODO
 z_dim = 100
 image_channel = 1
 LEARNING_RATE = 2e-4
-batch_size = 64
+batch_size = args.batch_size
 n_feature = 64
 save_model = args.save
 retrain = args.retrain
@@ -55,7 +56,7 @@ gen_opt = torch.optim.Adam(generat.parameters() , lr=LEARNING_RATE, betas=(0.5, 
 loss_fn = nn.BCELoss()
 
 if retrain:
-    utils.load_checkpoint(torch.load('DCMODEL.pth.tar' , map_location=torch.device('cpu')), modelDIS=dis,modelGEN=generat , optimizer=gen_opt)
+    utils.load_checkpoint(torch.load('DCMODEL.pth.tar' , map_location=torch.device('cpu')), modelDIS=dis,modelGEN=generat )
 
 
 
@@ -121,8 +122,7 @@ for epoch in  range(NUM_EPOCHS):
         if epoch % 5 == 0:
             checkpoint = {
                         'state_dic_GEN' : generat.state_dict(),
-                        'state_dic_DIS' : dis.state_dict(),
-                        'optimizer' : gen_opt.state_dict()
+                        'state_dic_DIS' : dis.state_dict()
                         }
             utils.save_checkpoint(stete=checkpoint)
         
