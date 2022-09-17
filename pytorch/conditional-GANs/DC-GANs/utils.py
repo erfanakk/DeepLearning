@@ -24,3 +24,14 @@ def gradient_penalty(critic, labels, real, fake, device="cpu"):
     gradient_norm = gradient.norm(2, dim=1)
     gradient_penalty = torch.mean((gradient_norm - 1) ** 2)
     return gradient_penalty
+
+
+def save_checkpoint(stete , filname='C-GAN.pth.tar'):
+    print(f'save the model in {filname}')
+    torch.save(stete, f=filname)
+
+def load_checkpoint( checkpoint , model: torch.nn.modules , optimizer: torch.optim.Optimizer):
+    print('-- loading model --')
+    model.load_state_dict(checkpoint['state_dic'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+

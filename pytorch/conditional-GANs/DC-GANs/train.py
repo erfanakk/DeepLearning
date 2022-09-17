@@ -6,13 +6,28 @@ from  model_builder import Discriminator, Discriminator, init_weight
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
 import sys
-from utils import gradient_penalty
+from utils import gradient_penalty, save_checkpoint
 #gper parametr
+
+import argparse
+import sys
+
+
+import argparse
+
+my_parser = argparse.ArgumentParser()
+my_parser.add_argument('--epoch', action='store', type=int, required=True)
+my_parser.add_argument('--save', action='store', type=bool)
+args = my_parser.parse_args()
+
+
+
 torch.manual_seed(42)
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-NUM_EPOCHS = 5 #number of epochs #TODO
+NUM_EPOCHS = args.epoch #number of epochs #TODO
 z_dim = 100
 image_channel = 1
 LEARNING_RATE = 1e-4
@@ -23,6 +38,7 @@ img_size = 64
 num_class =10
 gen_embedding = 100
 lambda_gp = 10
+save_model = args.save
 
 
 
@@ -84,6 +100,15 @@ for epoch in  range(NUM_EPOCHS):
         gen_opt.zero_grad()
         lossG.backward()
         gen_opt.step()
+
+        
+        if save_model:
+            if epoch % 5 == 0:
+                checkpoint = {
+                            'state_dic' : generat.state_dict(),
+                            'optimizer' : gen_opt.state_dict()
+                            }
+                utils.save_checkpoint(stete=checkpoint)
 
 
 
