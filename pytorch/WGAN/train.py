@@ -1,25 +1,48 @@
 import torch
 import  data_setup
-
+import utils
 import torch.nn as nn
 from  model_builder import Discriminator, Critic, init_weight 
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
 import sys
-
+import argparse
 #gper parametr
 torch.manual_seed(42)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-NUM_EPOCHS = 5 #number of epochs #TODO
-z_dim = 128
-image_channel = 1
-LEARNING_RATE = 5e-5
-batch_size = 64
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--epoch", type=int, default=20, help="number of epochs of training")
+parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+parser.add_argument("--lr", type=float, default=0.00005, help="learning rate")
+parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+parser.add_argument("--img_size", type=int, default=28, help="size of each image dimension")
+parser.add_argument("--channels", type=int, default=1, help="number of image channels")
+parser.add_argument("--n_critic", type=int, default=5, help="number of training steps for discriminator per iter")
+parser.add_argument("--clip_value", type=float, default=0.01, help="lower and upper clip value for disc. weights")
+
+opt = parser.parse_args()
+
+
+NUM_EPOCHS = opt.epoch #number of epochs #TODO
+z_dim = opt.latent_dim
+image_channel = opt.channels
+LEARNING_RATE = opt.lr
+batch_size = opt.batch_size
 n_feature = 64
-critic_iter = 5
-weight_clip= 0.01
+critic_iter = opt.n_critic
+weight_clip= opt.clip_value
+
+
+
+
+
+
+
+
 
 
 
@@ -33,8 +56,8 @@ init_weight(generat)
 
 fixed_size = torch.randn(size=(32, z_dim, 1, 1)).to(device)
 
-fake_writer = SummaryWriter(f'runs/DCGAN/fake')
-real_writer = SummaryWriter(f'runs/DCGAN/real')
+fake_writer = SummaryWriter(f'runs/WGAN/fake')
+real_writer = SummaryWriter(f'runs/WGAN/real')
 step = 0
 
 
@@ -107,6 +130,12 @@ for epoch in  range(NUM_EPOCHS):
                 )
                 step += 1    
 
-
+    if save_model:
+        if epoch % 5 == 0:
+            checkpoint = {
+                        'state_dic_GEN' : generat.state_dict(),
+                        'state_dic_DIS' : dis.state_dict()
+                        }
+            utils.save_checkpoint(stete=checkpoint) 
 
 
