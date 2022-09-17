@@ -18,6 +18,7 @@ import argparse
 my_parser = argparse.ArgumentParser()
 my_parser.add_argument('--epoch', action='store', type=int, required=True)
 my_parser.add_argument('--save', action='store', type=bool)
+my_parser.add_argument('--load', action='store', type=bool)
 args = my_parser.parse_args()
 
 

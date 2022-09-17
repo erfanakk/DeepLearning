@@ -14,6 +14,8 @@ import argparse
 my_parser = argparse.ArgumentParser()
 my_parser.add_argument('--epoch', action='store', type=int, required=True)
 my_parser.add_argument('--save', action='store', type=bool)
+my_parser.add_argument('--retrain', action='store', type=bool)
+
 args = my_parser.parse_args()
 
 
@@ -30,7 +32,7 @@ LEARNING_RATE = 2e-4
 batch_size = 64
 n_feature = 64
 save_model = args.save
-
+retrain = args.retrain
 
 dataloader = data_setup.creat_dataset(batch_size)
 
@@ -51,6 +53,10 @@ step = 0
 dic_opt = torch.optim.Adam(dis.parameters() , lr=LEARNING_RATE, betas=(0.5, 0.999))
 gen_opt = torch.optim.Adam(generat.parameters() , lr=LEARNING_RATE, betas=(0.5, 0.999))
 loss_fn = nn.BCELoss()
+
+if retrain:
+    utils.load_checkpoint(torch.load('DCMODEL.pth.tar' , map_location=torch.device('cpu')), modelDIS=dis,modelGEN=generat , optimizer=gen_opt)
+
 
 
 for epoch in  range(NUM_EPOCHS):
@@ -114,7 +120,8 @@ for epoch in  range(NUM_EPOCHS):
     if save_model:
         if epoch % 5 == 0:
             checkpoint = {
-                        'state_dic' : generat.state_dict(),
+                        'state_dic_GEN' : generat.state_dict(),
+                        'state_dic_DIS' : dis.state_dict(),
                         'optimizer' : gen_opt.state_dict()
                         }
             utils.save_checkpoint(stete=checkpoint)
