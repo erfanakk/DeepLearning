@@ -16,6 +16,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 generat = Generator(z_dim=z_dim, n_feature=n_feature, img_chan=image_channel).to(device)
+gen_opt = torch.optim.Adam(generat.parameters() , lr=0.001, betas=(0.5, 0.999))
+utils.load_checkpoint(torch.load('DCMODEL.pth.tar' , map_location=torch.device('cpu')), modelGEN=generat , optimizer=gen_opt)
+
+
 noise = torch.randn(size=(32, z_dim, 1, 1)).to(device)
 
 images = generat(noise)
