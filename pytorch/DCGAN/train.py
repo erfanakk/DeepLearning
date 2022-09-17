@@ -1,23 +1,35 @@
 import torch
 import  data_setup
-
+import utils
 import torch.nn as nn
 from  model_builder import Discriminator, Generator, init_weight 
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
 import sys
 
-#gper parametr
+
+import sys
+import argparse
+
+my_parser = argparse.ArgumentParser()
+my_parser.add_argument('--epoch', action='store', type=int, required=True)
+my_parser.add_argument('--save', action='store', type=bool)
+args = my_parser.parse_args()
+
+
+
 torch.manual_seed(42)
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-NUM_EPOCHS = 5 #number of epochs #TODO
+NUM_EPOCHS = args.epoch #number of epochs #TODO
 z_dim = 100
 image_channel = 1
 LEARNING_RATE = 2e-4
-batch_size = 128
+batch_size = 64
 n_feature = 64
+save_model = args.save
 
 
 dataloader = data_setup.creat_dataset(batch_size)
@@ -73,9 +85,9 @@ for epoch in  range(NUM_EPOCHS):
         gen_opt.step()
 
 
+        
 
-
-        if batch_idx == 0:
+        if (batch_idx % 50) == 0:
 
             print(
                     f"Epoch [{epoch}/{NUM_EPOCHS}] Batch {batch_idx}/{len(dataloader)} \
@@ -99,6 +111,13 @@ for epoch in  range(NUM_EPOCHS):
                 )
                 step += 1    
 
-
+    if save_model:
+        if epoch % 5 == 0:
+            checkpoint = {
+                        'state_dic' : generat.state_dict(),
+                        'optimizer' : gen_opt.state_dict()
+                        }
+            utils.save_checkpoint(stete=checkpoint)
+        
 
 

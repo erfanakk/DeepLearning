@@ -2,7 +2,7 @@ import torch
 import  data_setup
 
 import torch.nn as nn
-from  model_builder import Discriminator, Discriminator, init_weight 
+from  model_builder import Discriminator, Generator, init_weight 
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
 import sys
@@ -59,7 +59,7 @@ step = 0
 
 
 
-dic_opt = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=(0.0, 0.9))
+dic_opt = torch.optim.Adam(dis.parameters(), lr=LEARNING_RATE, betas=(0.0, 0.9))
 gen_opt = torch.optim.Adam(generat.parameters() , lr=LEARNING_RATE, betas=(0.0, 0.9))
 
 
@@ -102,18 +102,18 @@ for epoch in  range(NUM_EPOCHS):
         gen_opt.step()
 
         
-        if save_model:
-            if epoch % 5 == 0:
-                checkpoint = {
-                            'state_dic' : generat.state_dict(),
-                            'optimizer' : gen_opt.state_dict()
-                            }
-                utils.save_checkpoint(stete=checkpoint)
+    if save_model:
+        if epoch % 5 == 0:
+            checkpoint = {
+                        'state_dic' : generat.state_dict(),
+                        'optimizer' : gen_opt.state_dict()
+                        }
+            save_checkpoint(stete=checkpoint)
 
 
 
 
-        if batch_idx == 0:
+        if (batch_idx %100) == 0:
 
             print(
                     f"Epoch [{epoch}/{NUM_EPOCHS}] Batch {batch_idx}/{len(dataloader)} \
