@@ -15,11 +15,31 @@ import sys
 
 import argparse
 
-my_parser = argparse.ArgumentParser()
-my_parser.add_argument('--epoch', action='store', type=int, required=True)
-my_parser.add_argument('--save', action='store', type=bool)
-my_parser.add_argument('--load', action='store', type=bool)
-args = my_parser.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument("--epoch", type=int, default=20, help="number of epochs of training")
+parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
+parser.add_argument("--lr", type=float, default=0.00005, help="learning rate")
+parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+parser.add_argument("--img_size", type=int, default=28, help="size of each image dimension")
+parser.add_argument("--channels", type=int, default=1, help="number of image channels")
+parser.add_argument("--n_critic", type=int, default=5, help="number of training steps for discriminator per iter")
+parser.add_argument("--clip_value", type=float, default=0.01, help="lower and upper clip value for disc. weights")
+
+opt = parser.parse_args()
+
+
+NUM_EPOCHS = opt.epoch #number of epochs #TODO
+z_dim = opt.latent_dim
+image_channel = opt.channels
+LEARNING_RATE = opt.lr
+batch_size = opt.batch_size
+n_feature = 16
+critic_iter = opt.n_critic
+weight_clip= opt.clip_value
+num_class =10
+gen_embedding = 100
+lambda_gp = 10
+
 
 
 
@@ -27,19 +47,6 @@ torch.manual_seed(42)
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
-NUM_EPOCHS = args.epoch #number of epochs #TODO
-z_dim = 100
-image_channel = 1
-LEARNING_RATE = 1e-4
-batch_size = 64
-n_feature = 16
-critic_iter = 5
-img_size = 64
-num_class =10
-gen_embedding = 100
-lambda_gp = 10
-save_model = args.save
 
 
 
@@ -53,8 +60,8 @@ init_weight(generat)
 
 fixed_size = torch.randn(size=(32, z_dim, 1, 1)).to(device)
 
-fake_writer = SummaryWriter(f'runs/DCGAN/fake')
-real_writer = SummaryWriter(f'runs/DCGAN/real')
+fake_writer = SummaryWriter(f'runs/CGAN/fake')
+real_writer = SummaryWriter(f'runs/CGAN/real')
 step = 0
 
 
@@ -104,7 +111,7 @@ for epoch in  range(NUM_EPOCHS):
 
         
     if save_model:
-        if epoch % 5 == 0:
+        if (epoch+1) % 5 == 0:
             checkpoint = {
                         'state_dic' : generat.state_dict(),
                         'optimizer' : gen_opt.state_dict()

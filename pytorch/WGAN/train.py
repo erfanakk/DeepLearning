@@ -26,7 +26,7 @@ parser.add_argument("--clip_value", type=float, default=0.01, help="lower and up
 
 opt = parser.parse_args()
 
-
+save_model = True
 NUM_EPOCHS = opt.epoch #number of epochs #TODO
 z_dim = opt.latent_dim
 image_channel = opt.channels
