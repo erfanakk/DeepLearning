@@ -1,21 +1,48 @@
+import torch 
 import torchvision
-from torchvision import datasets, transforms
-import torch
 from torch.utils.data import DataLoader
+from torchvision import transforms , datasets
 
 
-def creat_dataset(num_batch):
-    transform = transforms.Compose([ 
-            transforms.Resize(size=(64, 64)),
+
+
+
+
+
+def datasetmnist(bc_size, img_size , mnist , cleb):
+
+    if cleb:
+        transform = transforms.Compose([
+            transforms.Resize(size=(img_size, img_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5,), std=(0.5,))
-            ]) 
+            transforms.Normalize(mean=(0.5,0.5,0.5), std=(0.5,0.5,0.5))
+        ])
+
+
+
+        data = datasets.CelebA(root='cleba/', transform=transform)
+        dataloader = DataLoader(data, batch_size=bc_size, shuffle=True)
     
-    dataset = datasets.MNIST(root="MNIST/",  transform=transform, download=True)
-    
-    dataloader = DataLoader(dataset, shuffle=True, batch_size=num_batch)
+    if mnist:
+        transform = transforms.Compose([
+        transforms.Resize(size=(img_size, img_size)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.5,), std=(0.5,))
+     ])
+
+
+
+        data = datasets.MNIST(root='mnist/', transform=transform, download=True)
+        dataloader = DataLoader(data, batch_size=bc_size, shuffle=True)
+          
     return dataloader
 
 
 
+
+    
+if __name__ == "__main__":
+    data = datasetmnist(32,64, mnist=False, cleb=True)
+    (img , labels) = next(iter(data))
+    print(img.shape)
 

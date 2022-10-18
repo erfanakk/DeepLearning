@@ -1,113 +1,112 @@
 import torch
-import  data_setup
-
-import torch.nn as nn
-from  model_builder import Discriminator, Critic, init_weight 
-from torch.utils.tensorboard import SummaryWriter
+import torch.nn
 import torchvision
-import sys
-from utils import gradient_penalty
-#gper parametr
-torch.manual_seed(42)
+from data_setup import datasetmnist
+from wgan_G import *
+from utils import *
+from torch.utils.tensorboard import SummaryWriter
+import time
+device = "cuda" if torch.cuda.is_available() else 'cpu'
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
 
-NUM_EPOCHS = 5 #number of epochs #TODO
+epochs = 20
+bc_size = 32
+lr = 0.00005
 z_dim = 100
-image_channel = 1
-LEARNING_RATE = 1e-4
-batch_size = 64
-n_feature = 16
-critic_iter = 5
-
-lambda_gp = 10
-
+n_critic = 5
+img_size = 64
+clip_value = 0.005
+channels = 1
+img_shape = (1,64,64)
+c_lambda = 10
 
 
-dataloader = data_setup.creat_dataset(batch_size)
 
-dis = Critic(in_channels=1, n_feature=n_feature).to(device)
-generat = Generator(z_dim=z_dim, n_feature=n_feature, img_chan=image_channel).to(device)
-init_weight(dis)
-init_weight(generat)
 
-fixed_size = torch.randn(size=(32, z_dim, 1, 1)).to(device)
+gen = Generator(z_dim=100, img_chan=1).to(device)
+critic = Critic(1).to(device)
 
-fake_writer = SummaryWriter(f'runs/DCGAN/fake')
-real_writer = SummaryWriter(f'runs/DCGAN/real')
+
+optG = torch.optim.RMSprop(gen.parameters(), lr)
+optC = torch.optim.RMSprop(critic.parameters(), lr)
+
+gen.apply(weights_init)
+critic.apply(weights_init)
+
+fake_writer = SummaryWriter(f'runs/wganG/fake')
 step = 0
+data = datasetmnist(bc_size, 64, mnist=True, cleb=False)
 
 
+def train():
+    global step
+    for epoch in range(epochs):
+        tic = time.time()            
+        if (epoch+1) % 5 == 0:
+            checkpoint = {
+            'gen_dict' : gen.state_dict(),
+            'dic_dict' : critic.state_dict()
+            }
+            save_checkpoint(stete=checkpoint)
 
+        for batch_idx , (reals, _) in enumerate(data):
 
-dic_opt = optim.Adam(gen.parameters(), lr=LEARNING_RATE, betas=(0.0, 0.9))
-gen_opt = torch.optim.Adam(generat.parameters() , lr=LEARNING_RATE, betas=(0.0, 0.9))
-
-
-
-for epoch in  range(NUM_EPOCHS):
-
-    for batch_idx , (real, _) in enumerate(dataloader):
-        dis.train()
-        generat.train()
-        real = real.to(device)
-        for _ in range(critic_iter):
-
-        
-            noise = torch.randn(size=(batch_size,z_dim,1,1)).to(device)
-            fake = generat(noise)
-        
-        #train dicsriminator
+            real_img = reals.to(device)
             
-            disc_real = dis(real).reshape(-1)
-            disc_fake = dis(fake).reshape(-1)
-            gp = gradient_penalty(dis, real, fake, device=device)
-            lossD = (
-                -(torch.mean(disc_real) - torch.mean(disc_fake)) + lambda_gp * gp
-            )
             
+            for i in range(n_critic):
+                #train critic
+                optC.zero_grad()
+                
+                critic.train()
+                
+                z = torch.randn(size=(real_img.shape[0], z_dim,1,1)).to(device)
 
-            dic_opt.zero_grad()
-            lossD.backward(retain_graph=True) 
-            dic_opt.step()
+                fake_img = gen(z).detach( )
+                
+
+                gp = gradient_penalty(critic, real_img, fake_img, device)
+
+                lossD = - torch.mean(critic(real_img)) + torch.mean(critic(fake_img)) + c_lambda * gp
+                
+                lossD.backward()
+                optC.step()
+                
+            
+            # for p in critic.parameters():
+            #       p.data.clamp_(-clip_value, clip_value)
 
 
+    
+            optG.zero_grad()
 
-        #train generator min log(1-D(G(z)))
+            fake_img_gen = gen(z)
+            lossG = - torch.mean(critic(fake_img_gen))
 
-        output = dis(fake).reshape(-1)
-        lossG = -torch.mean(output)
-        gen_opt.zero_grad()
-        lossG.backward()
-        gen_opt.step()
-
-
-
-
-        if batch_idx == 0:
-
-            print(
-                    f"Epoch [{epoch}/{NUM_EPOCHS}] Batch {batch_idx}/{len(dataloader)} \
-                        Loss D: {lossD:.4f}, loss G: {lossG:.4f}"
+            lossG.backward()
+            optG.step()
+        
+            #               
+            if batch_idx == (len(data)-2)  :
+                print(
+                            f"Epoch [{epoch}/{epochs}] Batch {batch_idx}/{len(data)} \
+                            Loss D: {lossD:.2f}, loss G: {lossG:.4f}"
                 )
-            with torch.no_grad():
-                dis.eval()
-                generat.eval()
-               
-                fake = generat(fixed_size)
-               
-                data = real
-                img_grid_fake = torchvision.utils.make_grid(fake[:32], normalize=True)
-                img_grid_real = torchvision.utils.make_grid(data[:32], normalize=True)
+                toc = time.time()
+                t = toc - tic
+                print(f'for {epoch} wait {t:.3f}s')
 
-                fake_writer.add_image(
-                    "Mnist Fake Images", img_grid_fake, global_step=step
-                )
-                real_writer.add_image(
-                    "Mnist Real Images", img_grid_real, global_step=step
-                )
-                step += 1    
+                with torch.inference_mode():
+                    gen.eval()
+                    critic.eval()
+                    fake_test = gen(z).cpu()
+                    # save images in grid of 10 * 10
+                    torchvision.utils.save_image(fake_test, f"mnist_epoch_{epoch+1}.jpg", nrow=10, padding=0, normalize=True)
+                    img_grid = torchvision.utils.make_grid(fake_test, normalize=True)
+                    fake_writer.add_image('mnist wgan G fake images', img_grid, global_step=step)
+
+                    step += 1
 
 
-
-
+if __name__ == "__main__":
+    train()
